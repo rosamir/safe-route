@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, MapPin, Navigation, Info, ShieldCheck, History, Clock, Activity } from 'lucide-react';
+import { ShieldAlert, MapPin, Navigation, Info, ShieldCheck, History, Clock, Activity, AlertTriangle, RefreshCw } from 'lucide-react';
 import { generateRouteAlternatives, RouteOption } from '@/lib/api';
 import dynamic from 'next/dynamic';
 
@@ -143,8 +143,19 @@ export default function Home() {
               </button>
             </form>
             {error && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl text-sm border border-red-100 dark:border-red-800/50">
-                {error}
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800/50 flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">{error}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="self-end flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  נסה שוב
+                </button>
               </div>
             )}
           </section>

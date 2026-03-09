@@ -2,6 +2,50 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
+/**
+ * Maps raw technical errors to friendly Hebrew messages.
+ * Unknown errors fall back to a generic "try again in a few minutes" message.
+ */
+function toHebrewError(error: unknown): string {
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+
+  // API key problems
+  if (msg.includes('leaked') || msg.includes('reported'))
+    return 'מפתח ה-AI אינו תקין (דווח כדלוף). פנה למנהל המערכת לקבלת מפתח חדש.';
+  if (msg.includes('api key') || msg.includes('permission_denied') || msg.includes('403'))
+    return 'אין הרשאה לשירות ה-AI. ייתכן שהמפתח שגוי או פג תוקפו — פנה למנהל המערכת.';
+
+  // Quota / rate limit
+  if (msg.includes('429') || msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted'))
+    return 'שירות ה-AI עמוס כרגע. המתן מספר דקות ונסה שוב.';
+
+  // Network / connectivity
+  if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('econnrefused') || msg.includes('timeout'))
+    return 'אין חיבור לאינטרנט או שהשרת אינו זמין. בדוק את החיבור שלך ונסה שוב.';
+
+  // Location geocoding
+  if (msg.includes('could not find location')) {
+    const match = (error instanceof Error ? error.message : '').match(/for: (.+)/);
+    const place = match ? `"${match[1]}"` : 'שהוזן';
+    return `לא הצלחנו לאתר את המיקום ${place}. נסה לציין עיר או ישוב מוכר יותר (למשל: "תל אביב" במקום כתובת מלאה).`;
+  }
+
+  // No routes from OSRM
+  if (msg.includes('no routes found') || msg.includes('no route'))
+    return 'לא נמצא מסלול בין הנקודות שציינת. נסה כתובות שונות.';
+
+  // AI response parsing
+  if (msg.includes('json') || msg.includes('parse') || msg.includes('no response from ai') || msg.includes('unexpected token'))
+    return 'שגיאה בעיבוד תוצאות הניתוח. נסה שוב עוד כמה דקות.';
+
+  // Server errors
+  if (msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('internal'))
+    return 'השרת אינו זמין כרגע. נסה שוב עוד מספר דקות.';
+
+  // Fallback
+  return 'אירעה תקלה לא צפויה. נסה שוב עוד מספר דקות — אם הבעיה חוזרת, פנה לתמיכה.';
+}
+
 export interface AlertHistoryNode {
   settlement: string;
   estimatedTime: string;
@@ -23,7 +67,13 @@ export interface RouteOption {
 }
 
 async function geocode(address: string): Promise<[number, number]> {
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ', Israel')}&format=json&limit=1`);
+  let res: Response;
+  try {
+    res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ', Israel')}&format=json&limit=1`);
+  } catch {
+    throw new Error('Failed to fetch geocoding service');
+  }
+  if (!res.ok) throw new Error(`Geocoding service returned ${res.status}`);
   const data = await res.json();
   if (data && data.length > 0) {
     return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
@@ -118,6 +168,6 @@ export async function generateRouteAlternatives(
     }));
   } catch (error) {
     console.error('Error generating routes:', error);
-    throw error;
+    throw new Error(toHebrewError(error));
   }
 }
