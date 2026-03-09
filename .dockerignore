@@ -1,0 +1,7 @@
+.next/
+node_modules/
+.git/
+.env*
+*.log
+README.md
+.DS_Store

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: safe-route
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # NEXT_PUBLIC_GEMINI_API_KEY is a build arg — set it in Render dashboard → Environment
+    dockerBuildArgs:
+      - NEXT_PUBLIC_GEMINI_API_KEY
+    envVars:
+      - key: NEXT_PUBLIC_GEMINI_API_KEY
+        sync: false   # value set in Render dashboard, not committed to git
+    autoDeploy: true

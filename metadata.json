@@ -1,0 +1,5 @@
+{
+  "name": "Safe-Route (נתיב בטוח)",
+  "description": "Smart routing based on real-time and historical alert data",
+  "requestFramePermissions": ["geolocation"]
+}
